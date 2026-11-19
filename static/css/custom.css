@@ -1,0 +1,78 @@
+/* Custom Agricultural Design Utilities */
+:root {
+  --color-forest: #2D5A27;
+  --color-forest-dark: #21421D;
+  --color-sage: #8FBC8F;
+  --color-cream: #FDFBF7;
+  --color-cream-dark: #F4EFE6;
+  --color-earth: #1C2819;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-earth);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F4EFE6;
+}
+::-webkit-scrollbar-thumb {
+  background: #8FBC8F;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2D5A27;
+}
+
+/* Glassmorphism & Soft Shadow Accents */
+.card-soft {
+  background: #FFFFFF;
+  border: 1px solid rgba(45, 90, 39, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(28, 40, 25, 0.05);
+  border-radius: 1rem;
+}
+
+.card-soft:hover {
+  border-color: rgba(45, 90, 39, 0.18);
+  box-shadow: 0 8px 25px -4px rgba(28, 40, 25, 0.08);
+}
+
+/* Pulsing Sensor Indicator */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 0.3; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.pulse-active {
+  animation: pulse-ring 2s infinite ease-in-out;
+}
+
+/* Markdown styling inside AI Assistant */
+.prose-agri h1, .prose-agri h2, .prose-agri h3 {
+  color: #2D5A27;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+.prose-agri p {
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
+.prose-agri ul, .prose-agri ol {
+  margin-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.prose-agri li {
+  margin-bottom: 0.35rem;
+}
+.prose-agri strong {
+  color: #1C2819;
+}

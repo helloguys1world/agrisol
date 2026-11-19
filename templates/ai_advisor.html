@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Groq AI Agronomist & Disease Diagnostic Assistant{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+  <div>
+    <div class="flex items-center gap-2 mb-1">
+      <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+        <i class="fas fa-bolt mr-1"></i> Groq LLaMA-3.3-70b Engine
+      </span>
+      <span class="text-xs text-earth-muted">Zero-Latency Agricultural Inference</span>
+    </div>
+    <h1 class="text-2xl font-bold text-forest tracking-tight">AI Agronomist & Crop Disease Diagnostic Center</h1>
+    <p class="text-sm text-earth-muted">Upload crop symptom photos, analyze root-zone microclimate, and receive actionable clinical prescriptions.</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  
+  <!-- Left 2 Cols: Interactive Diagnostic Studio -->
+  <div class="lg:col-span-2 space-y-6">
+    <div class="card-soft p-6 bg-white shadow-xs">
+      <form id="ai-query-form" onsubmit="handleAIConsultation(event)">
+        
+        <!-- Field Zone & Query Type Pickers -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-semibold text-earth mb-1">Select Field Zone Context</label>
+            <select id="ai-plot-id" class="w-full text-sm bg-cream-dark border border-cream-border rounded-xl px-3 py-2 text-earth focus:outline-none focus:ring-2 focus:ring-forest">
+              <option value="">General Farm Inquiry (No specific plot)</option>
+              {% for plot in plots %}
+              <option value="{{ plot.id }}">{{ plot.display_title }} ({{ plot.zone_name }} &bull; {{ plot.growth_stage }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-earth mb-1">Diagnostic Mode</label>
+            <select id="ai-query-type" class="w-full text-sm bg-cream-dark border border-cream-border rounded-xl px-3 py-2 text-earth focus:outline-none focus:ring-2 focus:ring-forest">
+              <option value="DISEASE_DIAGNOSIS">Crop Disease & Pathogen Diagnosis</option>
+              <option value="IRRIGATION_ADVICE">Precision Irrigation & ET₀ Advisory</option>
+              <option value="NUTRIENT_DEFICIENCY">Soil & NPK Nutrient Deficiency</option>
+              <option value="YIELD_PREDICTION">Yield & Harvest Strategy</option>
+              <option value="GENERAL">General Agronomic Guidance</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Quick Template Prompt Chips -->
+        <div class="mb-4">
+          <span class="block text-[11px] font-semibold text-earth-muted mb-2">Preset Academic Case Studies:</span>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="setPrompt('Tomato lower leaves have concentric brown target rings with yellow margins. Lesions spreading fast.')" class="text-xs bg-cream hover:bg-cream-dark text-earth px-3 py-1.5 rounded-lg border border-cream-border transition">
+              🍅 Tomato Early Blight
+            </button>
+            <button type="button" onclick="setPrompt('Wheat moisture is dipping to 36.2%. With today\'s ET0 at 1.1 mm/day and 21°C temp, should pump run now or dawn?')" class="text-xs bg-cream hover:bg-cream-dark text-earth px-3 py-1.5 rounded-lg border border-cream-border transition">
+              🌾 Wheat Irrigation Timing
+            </button>
+            <button type="button" onclick="setPrompt('Corn leaves show V-shaped yellowing starting from leaf tips along the midrib on older leaves.')" class="text-xs bg-cream hover:bg-cream-dark text-earth px-3 py-1.5 rounded-lg border border-cream-border transition">
+              🌽 Maize Nitrogen Deficiency
+            </button>
+          </div>
+        </div>
+
+        <!-- Photo Upload / Symptom Scanner -->
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-earth mb-1">Upload Foliage / Root Photo (Simulated Vision Input)</label>
+          <div class="border-2 border-dashed border-cream-border hover:border-forest/50 rounded-xl p-4 text-center bg-cream/30 transition cursor-pointer" onclick="document.getElementById('photo-input').click()">
+            <input type="file" id="photo-input" accept="image/*" class="hidden" onchange="previewUploadedImage(event)">
+            <div id="upload-placeholder">
+              <i class="fas fa-camera text-sage text-2xl mb-1"></i>
+              <p class="text-xs font-semibold text-forest">Click or Drag & Drop Foliage Photo</p>
+              <p class="text-[10px] text-earth-muted">Supports JPG, PNG up to 10MB (Simulated multimodal feature)</p>
+            </div>
+            <div id="image-preview-container" class="hidden flex items-center justify-center gap-3">
+              <img id="image-preview" src="" alt="Symptom preview" class="h-20 w-20 object-cover rounded-lg border border-cream-border shadow-xs">
+              <div class="text-left text-xs">
+                <span id="preview-filename" class="font-bold text-earth block">image.jpg</span>
+                <span class="text-emerald-700 font-semibold block text-[11px]"><i class="fas fa-check-circle"></i> Foliage image staged for diagnosis</span>
+                <button type="button" onclick="event.stopPropagation(); clearImagePreview();" class="text-red-600 hover:underline text-[10px] mt-1">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Prompt Input -->
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-earth mb-1">Symptom Description & Field Observations *</label>
+          <textarea id="ai-prompt" rows="4" required placeholder="Describe crop leaf discoloration, lesion shapes, insect presence, recent weather shifts, or specific questions..." class="w-full text-sm bg-cream-dark border border-cream-border rounded-xl p-3 text-earth focus:outline-none focus:ring-2 focus:ring-forest leading-relaxed"></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-between items-center">
+          <span class="text-[11px] text-earth-muted">
+            <i class="fas fa-shield-alt text-sage mr-1"></i> Powered by Groq Cloud API & LLaMA-3.3-70b-versatile
+          </span>
+          <button type="submit" id="ask-btn" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-forest text-white text-sm font-semibold hover:bg-forest-hover shadow-sm transition">
+            <i class="fas fa-microchip"></i>
+            <span>Run Diagnostic Analysis</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Diagnostic Response View Area -->
+    <div id="ai-response-card" class="card-soft p-6 bg-white hidden border-l-4 border-l-forest shadow-xs">
+      <div class="flex justify-between items-center pb-4 border-b border-cream-border mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-forest text-white flex items-center justify-center text-sm">
+            <i class="fas fa-stethoscope"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-forest">Agronomic Diagnostic Protocol</h3>
+            <span class="text-xs text-earth-muted" id="ai-model-badge">Groq LLaMA-3.3-70b-versatile</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="copyAdviceText()" class="text-xs px-3 py-1.5 rounded-lg border border-cream-border hover:bg-cream-dark text-earth font-medium">
+            <i class="fas fa-copy mr-1"></i> Copy
+          </button>
+        </div>
+      </div>
+
+      <!-- Markdown Output -->
+      <div id="ai-markdown-output" class="prose-agri text-sm text-earth mb-6"></div>
+
+      <!-- Action Items Checklist -->
+      <div id="ai-action-items-box" class="bg-cream p-4 rounded-xl border border-cream-border">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-forest mb-3 flex items-center gap-1.5">
+          <i class="fas fa-tasks text-sage"></i>
+          <span>Field Action Checklist (Immediate Priority)</span>
+        </h4>
+        <ul id="ai-action-checklist" class="space-y-2 text-xs"></ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Col: Diagnostic History Sidebar -->
+  <div class="space-y-4">
+    <div class="card-soft p-5 bg-white">
+      <h3 class="font-bold text-sm text-forest mb-3 flex items-center gap-2">
+        <i class="fas fa-clock-rotate-left text-sage"></i>
+        <span>Past Diagnostic Consultations</span>
+      </h3>
+      <p class="text-xs text-earth-muted mb-4">Review historical field advisories and disease recovery records.</p>
+
+      <div class="space-y-3 max-h-[600px] overflow-y-auto pr-1" id="history-container">
+        {% for item in history %}
+        <div class="p-3 bg-cream rounded-xl border border-cream-border hover:border-forest/40 transition cursor-pointer" onclick="showHistoryDetail({{ item.id }})">
+          <div class="flex justify-between items-start text-[11px] mb-1">
+            <span class="font-bold text-forest">{{ item.query_type.replace('_', ' ') }}</span>
+            <span class="text-earth-muted">{{ item.created_at.strftime('%b %d, %H:%M') if item.created_at else '' }}</span>
+          </div>
+          <p class="text-xs font-medium text-earth truncate mb-1">"{{ item.user_prompt }}"</p>
+          <span class="text-[10px] text-earth-muted block">Zone: {{ item.plot.name if item.plot else 'Farm-Wide' }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let rawAiResponse = "";
+
+  function setPrompt(text) {
+    document.getElementById('ai-prompt').value = text;
+    document.getElementById('ai-prompt').focus();
+  }
+
+  function previewUploadedImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('image-preview').src = e.target.result;
+        document.getElementById('preview-filename').textContent = file.name;
+        document.getElementById('upload-placeholder').classList.add('hidden');
+        document.getElementById('image-preview-container').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function clearImagePreview() {
+    document.getElementById('photo-input').value = "";
+    document.getElementById('upload-placeholder').classList.remove('hidden');
+    document.getElementById('image-preview-container').classList.add('hidden');
+  }
+
+  async function handleAIConsultation(event) {
+    event.preventDefault();
+    const prompt = document.getElementById('ai-prompt').value.trim();
+    const queryType = document.getElementById('ai-query-type').value;
+    const plotId = document.getElementById('ai-plot-id').value;
+    const btn = document.getElementById('ask-btn');
+
+    if (!prompt) return;
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Analyzing with LLaMA-3.3...`;
+
+    try {
+      const response = await fetch('/api/ai/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: prompt,
+          query_type: queryType,
+          plot_id: plotId ? parseInt(plotId) : null
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        const c = data.consultation;
+        rawAiResponse = c.ai_response;
+
+        // Render Markdown
+        document.getElementById('ai-markdown-output').innerHTML = marked.parse(c.ai_response);
+        document.getElementById('ai-model-badge').textContent = `Inference Engine: ${c.model_used || 'Groq LLaMA-3.3-70b-versatile'}`;
+
+        // Render Action Checklist
+        const checklist = document.getElementById('ai-action-checklist');
+        checklist.innerHTML = '';
+        const recs = c.actionable_recommendations || [];
+        if (recs.length > 0) {
+          recs.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center gap-2.5 text-earth';
+            li.innerHTML = `
+              <input type="checkbox" id="rec-${index}" class="rounded text-forest focus:ring-forest">
+              <label for="rec-${index}" class="cursor-pointer font-medium">${item}</label>
+            `;
+            checklist.appendChild(li);
+          });
+          document.getElementById('ai-action-items-box').classList.remove('hidden');
+        } else {
+          document.getElementById('ai-action-items-box').classList.add('hidden');
+        }
+
+        const respCard = document.getElementById('ai-response-card');
+        respCard.classList.remove('hidden');
+        respCard.scrollIntoView({ behavior: 'smooth' });
+        showToast('Diagnostic consultation complete.', 'success');
+      } else {
+        showToast(data.error || 'Failed to complete diagnosis', 'error');
+      }
+    } catch (e) {
+      showToast('Network error while querying Groq API', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fas fa-microchip"></i> Run Diagnostic Analysis`;
+    }
+  }
+
+  function copyAdviceText() {
+    if (rawAiResponse) {
+      navigator.clipboard.writeText(rawAiResponse);
+      showToast('Prescription text copied to clipboard.', 'info');
+    }
+  }
+
+  async function showHistoryDetail(id) {
+    try {
+      const res = await fetch('/api/ai/history');
+      const data = await res.json();
+      if (!data.success) return;
+
+      const item = data.consultations.find(c => c.id === id);
+      if (item) {
+        rawAiResponse = item.ai_response;
+        document.getElementById('ai-markdown-output').innerHTML = marked.parse(item.ai_response);
+        document.getElementById('ai-model-badge').textContent = `Model: ${item.model_used} &bull; Recorded: ${item.created_at}`;
+
+        const checklist = document.getElementById('ai-action-checklist');
+        checklist.innerHTML = '';
+        (item.actionable_recommendations || []).forEach((rec, i) => {
+          const li = document.createElement('li');
+          li.className = 'flex items-center gap-2.5 text-earth';
+          li.innerHTML = `<input type="checkbox" id="h-rec-${i}"><label for="h-rec-${i}">${rec}</label>`;
+          checklist.appendChild(li);
+        });
+
+        const respCard = document.getElementById('ai-response-card');
+        respCard.classList.remove('hidden');
+        respCard.scrollIntoView({ behavior: 'smooth' });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+</script>
+{% endblock %}

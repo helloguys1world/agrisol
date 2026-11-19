@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Smart Agriculture Decision Support System{% endblock %}</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Tailwind CSS CDN with Custom Palette Configuration -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            forest: {
+              DEFAULT: '#2D5A27',
+              hover: '#24491F',
+              light: '#3C7335',
+            },
+            sage: {
+              DEFAULT: '#8FBC8F',
+              light: '#DCEADc',
+              dark: '#6E986E',
+            },
+            cream: {
+              DEFAULT: '#FDFBF7',
+              dark: '#F4EFE6',
+              border: '#E8E1D5',
+            },
+            earth: {
+              DEFAULT: '#1C2819',
+              muted: '#4B5548',
+              light: '#6B7768',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js & Marked.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body class="bg-cream text-earth flex flex-col min-h-screen selection:bg-sage selection:text-earth">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-cream-border sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        
+        <!-- Brand Logo & Academic Title -->
+        <div class="flex items-center gap-3">
+          <a href="/" class="flex items-center gap-2.5 group">
+            <div class="w-10 h-10 rounded-xl bg-forest flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
+              <i class="fas fa-seedling text-lg"></i>
+            </div>
+            <div>
+              <span class="text-lg font-bold text-forest tracking-tight block leading-tight">AgriSol. </span>
+              <span class="text-xs text-earth-muted font-medium">Smart Precision Agriculture</span>
+            </div>
+          </a>
+          <span class="hidden md:inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cream-dark text-earth-muted border border-cream-border ml-2">
+            Academic Project Demo
+          </span>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="hidden md:flex items-center gap-1">
+          <a href="/" class="px-3 py-2 rounded-lg text-sm font-semibold transition-colors {% if active_page == 'dashboard' %}bg-forest text-white shadow-xs{% else %}text-earth-muted hover:text-forest hover:bg-cream-dark{% endif %}">
+            <i class="fas fa-chart-line mr-1.5"></i> Dashboard
+          </a>
+          <a href="/fields" class="px-3 py-2 rounded-lg text-sm font-semibold transition-colors {% if active_page == 'fields' %}bg-forest text-white shadow-xs{% else %}text-earth-muted hover:text-forest hover:bg-cream-dark{% endif %}">
+            <i class="fas fa-layer-group mr-1.5"></i> Field Setup
+          </a>
+          <a href="/logs" class="px-3 py-2 rounded-lg text-sm font-semibold transition-colors {% if active_page == 'logs' %}bg-forest text-white shadow-xs{% else %}text-earth-muted hover:text-forest hover:bg-cream-dark{% endif %}">
+            <i class="fas fa-clipboard-list mr-1.5"></i> Field Logs
+          </a>
+          <a href="/advisor" class="px-3 py-2 rounded-lg text-sm font-semibold transition-colors {% if active_page == 'advisor' %}bg-forest text-white shadow-xs{% else %}text-earth-muted hover:text-forest hover:bg-cream-dark{% endif %}">
+            <i class="fas fa-robot mr-1.5"></i> Groq AI Advisor
+          </a>
+          <a href="/financials" class="px-3 py-2 rounded-lg text-sm font-semibold transition-colors {% if active_page == 'financials' %}bg-forest text-white shadow-xs{% else %}text-earth-muted hover:text-forest hover:bg-cream-dark{% endif %}">
+            <i class="fas fa-coins mr-1.5"></i> Yield & ROI
+          </a>
+        </nav>
+
+        <!-- System Status Badges -->
+        <div class="flex items-center gap-2">
+          <div class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-cream-dark border border-cream-border text-xs font-medium text-earth">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>IoT Live</span>
+          </div>
+          <div class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-cream-dark border border-cream-border text-xs font-medium text-earth">
+            <i class="fas fa-bolt text-amber-500"></i>
+            <span>Groq LLaMA-3.3</span>
+          </div>
+
+          <!-- Mobile Menu Button -->
+          <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg text-earth hover:bg-cream-dark" onclick="toggleMobileMenu()">
+            <i class="fas fa-bars text-lg"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Mobile Dropdown Navigation -->
+    <div id="mobile-menu" class="hidden md:hidden border-t border-cream-border bg-white px-4 pt-2 pb-4 space-y-1">
+      <a href="/" class="block px-3 py-2 rounded-lg text-base font-medium {% if active_page == 'dashboard' %}bg-forest text-white{% else %}text-earth hover:bg-cream-dark{% endif %}">
+        <i class="fas fa-chart-line mr-2"></i> Dashboard
+      </a>
+      <a href="/fields" class="block px-3 py-2 rounded-lg text-base font-medium {% if active_page == 'fields' %}bg-forest text-white{% else %}text-earth hover:bg-cream-dark{% endif %}">
+        <i class="fas fa-layer-group mr-2"></i> Field Setup
+      </a>
+      <a href="/logs" class="block px-3 py-2 rounded-lg text-base font-medium {% if active_page == 'logs' %}bg-forest text-white{% else %}text-earth hover:bg-cream-dark{% endif %}">
+        <i class="fas fa-clipboard-list mr-2"></i> Field Logs
+      </a>
+      <a href="/advisor" class="block px-3 py-2 rounded-lg text-base font-medium {% if active_page == 'advisor' %}bg-forest text-white{% else %}text-earth hover:bg-cream-dark{% endif %}">
+        <i class="fas fa-robot mr-2"></i> Groq AI Advisor
+      </a>
+      <a href="/financials" class="block px-3 py-2 rounded-lg text-base font-medium {% if active_page == 'financials' %}bg-forest text-white{% else %}text-earth hover:bg-cream-dark{% endif %}">
+        <i class="fas fa-coins mr-2"></i> Yield & ROI
+      </a>
+    </div>
+  </header>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-20 right-5 z-50 flex flex-col gap-2 max-w-sm"></div>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-cream-border py-4 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-earth-muted">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-forest">AgriSense AI Decision Support System</span>
+        <span>&bull;</span>
+        <span>MySQL 8.0 &bull; Flask SQLAlchemy &bull; Groq LLaMA-3.3-70b</span>
+      </div>
+      <div>
+        <span>Academic Project Presentation Ready &copy; 2026</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      menu.classList.toggle('hidden');
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
